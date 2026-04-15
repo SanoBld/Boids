@@ -3,386 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Boids — Flocking Simulation Enhanced</title>
+  <title>Boids — Flocking Simulation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <style>
-/* ===== RESET ===== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-/* ===== TOKENS ===== */
-:root {
-  --bg:       #0c0e14;
-  --panel:    #111318;
-  --card:     #171b24;
-  --border:   #1f2330;
-  --border-2: #2a3045;
-
-  --txt:      #cdd5e8;
-  --txt-mid:  #6b7590;
-  --txt-lo:   #353d52;
-
-  --accent:   #5c70f0;
-  --coh:      #22d3ee;
-  --ali:      #86efac;
-  --sep:      #fb7185;
-  --food:     #fbbf24;
-
-  --panel-w: 260px;
-  --r:       6px;
-  --font:    'Onest', sans-serif;
-  --mono:    'JetBrains Mono', monospace;
-}
-
-html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--txt); font-family: var(--font); font-size: 13px; line-height: 1.4; }
-
-.app { display: flex; width: 100%; height: 100vh; }
-
-/* ===== PANEL ===== */
-.panel {
-  width: var(--panel-w);
-  flex-shrink: 0;
-  height: 100vh;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.head-left { display: flex; align-items: center; gap: 10px; }
-.panel-icon { font-size: 18px; color: var(--accent); line-height: 1; }
-.panel-title { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; }
-.panel-sub   { font-size: 10px; color: var(--txt-lo); margin-top: 1px; }
-
-.agent-badge { text-align: right; }
-.agent-badge span:first-child {
-  display: block;
-  font-family: var(--mono);
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--accent);
-  line-height: 1;
-}
-.badge-label { font-size: 10px; color: var(--txt-lo); }
-
-.panel-body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-2) transparent;
-}
-.panel-body::-webkit-scrollbar { width: 3px; }
-.panel-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
-
-.sec { padding: 13px 16px; border-bottom: 1px solid var(--border); }
-
-.sec-title {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--txt-lo);
-  margin-bottom: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.hint {
-  font-size: 11px;
-  color: var(--txt-lo);
-  line-height: 1.55;
-  margin-bottom: 9px;
-}
-
-.row-slider {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 9px;
-}
-.row-slider:last-child { margin-bottom: 0; }
-
-.row-slider label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 72px;
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--txt-mid);
-  cursor: default;
-}
-
-.val {
-  font-size: 11px;
-  color: var(--txt);
-  width: 34px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.count-input {
-  width: 48px;
-  flex-shrink: 0;
-  background: var(--card);
-  border: 1px solid var(--border-2);
-  border-radius: var(--r);
-  color: var(--txt);
-  font-family: var(--mono);
-  font-size: 11px;
-  padding: 3px 5px;
-  text-align: center;
-  transition: border-color 0.12s;
-}
-.count-input:focus { outline: none; border-color: var(--accent); }
-.count-input::-webkit-outer-spin-button,
-.count-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-.count-input[type=number] { -moz-appearance: textfield; }
-
-.dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.c-coh { background: var(--coh); }
-.c-ali { background: var(--ali); }
-.c-sep { background: var(--sep); }
-.c-food { background: var(--food); }
-.c-coh-text { color: var(--coh); }
-.c-ali-text { color: var(--ali); }
-.c-sep-text { color: var(--sep); }
-.c-food-text { color: var(--food); }
-
-input[type="range"] {
-  -webkit-appearance: none;
-  flex: 1;
-  height: 2px;
-  background: var(--border-2);
-  border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-}
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 11px; height: 11px;
-  border-radius: 50%;
-  background: var(--txt);
-  transition: background 0.12s, transform 0.12s;
-}
-input[type="range"]:hover::-webkit-slider-thumb {
-  background: var(--accent);
-  transform: scale(1.25);
-}
-input[type="range"]::-moz-range-thumb {
-  width: 11px; height: 11px;
-  border: none; border-radius: 50%;
-  background: var(--txt);
-}
-
-.chip-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
-}
-.obs-grid { grid-template-columns: repeat(5, 1fr); }
-
-.chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 7px 4px 5px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  color: var(--txt-mid);
-  font-family: var(--font);
-  font-size: 10px;
-  cursor: pointer;
-  transition: border-color 0.12s, color 0.12s, background 0.12s;
-  white-space: nowrap;
-}
-.chip svg { width: 18px; height: 18px; display: block; }
-.chip:hover { border-color: var(--border-2); color: var(--txt); }
-.chip.active-design { border-color: var(--accent); color: var(--accent); background: rgba(92,112,240,0.12); }
-.chip.active-obs { border-color: var(--sep); color: var(--sep); background: rgba(251,113,133,0.1); }
-
-.btn-row { display: flex; gap: 7px; }
-
-.btn-primary {
-  flex: 1;
-  padding: 8px 10px;
-  background: var(--accent);
-  border: none;
-  border-radius: var(--r);
-  color: #fff;
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.12s;
-}
-.btn-primary:hover  { opacity: 0.82; }
-.btn-primary:active { opacity: 0.65; }
-
-.btn-ghost {
-  flex: 1;
-  padding: 8px 10px;
-  background: transparent;
-  border: 1px solid var(--border-2);
-  border-radius: var(--r);
-  color: var(--txt-mid);
-  font-family: var(--font);
-  font-size: 13px;
-  cursor: pointer;
-  transition: color 0.12s, border-color 0.12s;
-}
-.btn-ghost:hover  { color: var(--txt); border-color: var(--txt-mid); }
-.btn-full { width: 100%; flex: none; margin-top: 8px; }
-
-/* Food button active style */
-.btn-ghost.active-food {
-  color: var(--food);
-  border-color: var(--food);
-  background: rgba(251,191,36,0.08);
-}
-
-.obs-info-sec {
-  background: rgba(92,112,240,0.04);
-  border-left: 2px solid rgba(92,112,240,0.35);
-}
-
-.info-sec { background: rgba(255,255,255,0.015); }
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--txt-lo);
-  cursor: pointer;
-  font-size: 11px;
-  padding: 2px 5px;
-  border-radius: 3px;
-  transition: color 0.1s, background 0.1s;
-}
-.close-btn:hover { color: var(--txt); background: var(--border); }
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-bottom: 11px;
-}
-.info-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 6px 9px;
-}
-.info-label { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--txt-lo); margin-bottom: 2px; }
-.info-val { font-size: 13px; color: var(--txt); }
-.mono { font-family: var(--mono); }
-
-.force-list { display: flex; flex-direction: column; gap: 7px; }
-.force-row { display: flex; align-items: center; gap: 8px; }
-.force-label { width: 58px; flex-shrink: 0; font-size: 11px; color: var(--txt-mid); }
-.force-track { flex: 1; height: 4px; background: var(--card); border-radius: 2px; overflow: hidden; }
-.force-bar { height: 100%; border-radius: 2px; width: 0%; transition: width 0.08s linear; }
-.fb-coh { background: var(--coh); }
-.fb-ali { background: var(--ali); }
-.fb-sep { background: var(--sep); }
-.force-num { font-size: 10px; color: var(--txt-mid); width: 36px; text-align: right; flex-shrink: 0; }
-
-/* ===== CHARTS ===== */
-.chart-wrap {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 8px 10px;
-  margin-bottom: 8px;
-}
-.chart-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--txt-lo);
-  margin-bottom: 5px;
-}
-.chart-val {
-  font-family: var(--mono);
-  font-size: 14px;
-  color: var(--txt);
-  margin-bottom: 4px;
-}
-canvas.mini-chart {
-  display: block;
-  width: 100%;
-  height: 36px;
-  border-radius: 3px;
-}
-
-/* ===== CANVAS AREA ===== */
-.canvas-area { position: relative; flex: 1; overflow: hidden; }
-#boidsCanvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
-
-.mode-pill {
-  position: absolute;
-  top: 12px; right: 14px;
-  background: rgba(10,12,20,0.75);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--border-2);
-  border-radius: 20px;
-  padding: 4px 13px;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--txt-mid);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s;
-}
-.mode-pill.show { opacity: 1; }
-.mode-pill.polygon-mode { border-color: rgba(251,113,133,0.5); color: rgba(251,113,133,0.9); }
-.mode-pill.food-mode { border-color: rgba(251,191,36,0.6); color: rgba(251,191,36,0.95); }
-
-/* Toggle switch */
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 9px;
-}
-.toggle-row label { font-size: 12px; color: var(--txt-mid); }
-.toggle {
-  position: relative;
-  width: 32px; height: 18px;
-  flex-shrink: 0;
-}
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-track {
-  position: absolute; inset: 0;
-  background: var(--border-2);
-  border-radius: 9px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.toggle-track::after {
-  content: '';
-  position: absolute;
-  left: 3px; top: 3px;
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: var(--txt-mid);
-  transition: transform 0.15s, background 0.15s;
-}
-.toggle input:checked + .toggle-track { background: var(--accent); }
-.toggle input:checked + .toggle-track::after { transform: translateX(14px); background: #fff; }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <div class="app">
@@ -405,17 +29,27 @@ canvas.mini-chart {
     <div class="panel-body">
 
       <!-- LIVE CHARTS -->
-      <section class="sec">
-        <h2 class="sec-title">Live Metrics</h2>
-        <div class="chart-wrap">
-          <div class="chart-label">Avg Speed</div>
-          <div class="chart-val mono" id="chartSpeedVal">0.00</div>
-          <canvas class="mini-chart" id="chartSpeed" width="220" height="36"></canvas>
-        </div>
-        <div class="chart-wrap">
-          <div class="chart-label">Polarity (alignment %) </div>
-          <div class="chart-val mono" id="chartPolarityVal">0%</div>
-          <canvas class="mini-chart" id="chartPolarity" width="220" height="36"></canvas>
+      <section class="sec" id="metricsSection">
+        <h2 class="sec-title">
+          Live Metrics
+          <button class="icon-btn" id="chartsToggleBtn" title="Hide charts">
+            <svg viewBox="0 0 16 12" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 6s3-4 7-4 7 4 7 4-3 4-7 4-7-4-7-4z" fill="none" stroke="currentColor" stroke-width="1.4"/>
+              <circle cx="8" cy="6" r="1.5" fill="currentColor"/>
+            </svg>
+          </button>
+        </h2>
+        <div class="chart-content">
+          <div class="chart-wrap">
+            <div class="chart-label">Avg Speed</div>
+            <div class="chart-val mono" id="chartSpeedVal">0.00</div>
+            <canvas class="mini-chart" id="chartSpeed" width="220" height="36"></canvas>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-label">Polarity (alignment %)</div>
+            <div class="chart-val mono" id="chartPolarityVal">0%</div>
+            <canvas class="mini-chart" id="chartPolarity" width="220" height="36"></canvas>
+          </div>
         </div>
       </section>
 
@@ -424,51 +58,59 @@ canvas.mini-chart {
         <h2 class="sec-title">Population</h2>
         <div class="row-slider">
           <label>Count</label>
-          <input type="range" id="boidCountSlider" min="1" max="500" step="1" value="80" />
-          <input type="number" id="boidCountInput" min="1" max="500" value="80" class="count-input mono" />
+          <input type="range" id="boidCountSlider" min="1" max="1000" step="1" value="80" />
+          <input type="number" id="boidCountInput" min="1" value="80" class="count-input mono" />
         </div>
+        <p class="hint" style="margin-top:4px">Slider goes to 1000 · Type any value directly</p>
       </section>
 
-      <!-- BEHAVIORS -->
+      <!-- BEHAVIOR WEIGHTS -->
       <section class="sec">
-        <h2 class="sec-title">Behaviors</h2>
+        <h2 class="sec-title">Behavior Weights</h2>
+        <p class="sec-subtitle">How strongly each rule pulls the agents</p>
         <div class="row-slider">
-          <label><span class="dot c-coh"></span>Cohesion</label>
+          <label><span class="dot c-coh"></span>Cohesion ×</label>
           <input type="range" id="cohesionWeight" min="0" max="3" step="0.05" value="1.0" />
           <span class="val mono" id="cohesionVal">1.0</span>
         </div>
         <div class="row-slider">
-          <label><span class="dot c-ali"></span>Alignment</label>
+          <label><span class="dot c-ali"></span>Alignment ×</label>
           <input type="range" id="alignmentWeight" min="0" max="3" step="0.05" value="1.0" />
           <span class="val mono" id="alignmentVal">1.0</span>
         </div>
         <div class="row-slider">
-          <label><span class="dot c-sep"></span>Separation</label>
+          <label><span class="dot c-sep"></span>Separation ×</label>
           <input type="range" id="separationWeight" min="0" max="3" step="0.05" value="1.5" />
           <span class="val mono" id="separationVal">1.5</span>
         </div>
         <div class="row-slider">
-          <label><span class="dot c-food"></span>Food</label>
+          <label><span class="dot c-food"></span>Food ×</label>
           <input type="range" id="foodWeight" min="0" max="3" step="0.05" value="0.8" />
           <span class="val mono" id="foodVal">0.8</span>
         </div>
+        <div class="row-slider">
+          <label><span class="dot c-prey"></span>Prey ×</label>
+          <input type="range" id="preyWeight" min="0" max="3" step="0.05" value="1.2" />
+          <span class="val mono" id="preyWeightVal">1.2</span>
+        </div>
       </section>
 
-      <!-- PERCEPTION -->
+      <!-- VISION RANGES -->
       <section class="sec">
-        <h2 class="sec-title">Perception</h2>
+        <h2 class="sec-title">Vision Ranges</h2>
+        <p class="sec-subtitle">How far each agent can "see" (pixels)</p>
         <div class="row-slider">
-          <label><span class="dot c-coh"></span>Cohesion</label>
+          <label><span class="dot c-coh"></span>Coh. dist</label>
           <input type="range" id="cohesionRadius" min="20" max="200" step="5" value="80" />
           <span class="val mono" id="cohesionRadiusVal">80</span>
         </div>
         <div class="row-slider">
-          <label><span class="dot c-ali"></span>Alignment</label>
+          <label><span class="dot c-ali"></span>Ali. dist</label>
           <input type="range" id="alignmentRadius" min="20" max="200" step="5" value="60" />
           <span class="val mono" id="alignmentRadiusVal">60</span>
         </div>
         <div class="row-slider">
-          <label><span class="dot c-sep"></span>Separation</label>
+          <label><span class="dot c-sep"></span>Sep. dist</label>
           <input type="range" id="separationRadius" min="10" max="100" step="5" value="30" />
           <span class="val mono" id="separationRadiusVal">30</span>
         </div>
@@ -508,17 +150,33 @@ canvas.mini-chart {
         </div>
       </section>
 
-      <!-- FOOD/TARGET -->
+      <!-- FOOD / TARGET -->
       <section class="sec">
-        <h2 class="sec-title">Food / Target</h2>
-        <p class="hint">Place an attraction point. Boids are drawn to it as an extra force.</p>
+        <h2 class="sec-title">
+          Food / Target
+          <span style="font-size:10px;color:var(--txt-lo);font-weight:400;text-transform:none;letter-spacing:0" id="foodCount">0</span>
+        </h2>
+        <p class="hint">Static attraction points. Boids seek them based on Food × weight.<br>Right-click a food point to remove it.</p>
         <div class="btn-row">
-          <button class="btn-ghost" id="placeFoodBtn">⊕ Place Food</button>
-          <button class="btn-ghost" id="clearFoodBtn">Clear</button>
+          <button class="btn-ghost" id="placeFoodBtn">⊕ Add Food</button>
+          <button class="btn-ghost" id="clearFoodBtn">Clear All</button>
         </div>
       </section>
 
-      <!-- BORDERS -->
+      <!-- PREY -->
+      <section class="sec">
+        <h2 class="sec-title">
+          Prey
+          <span style="font-size:10px;color:var(--txt-lo);font-weight:400;text-transform:none;letter-spacing:0" id="preyCount">0</span>
+        </h2>
+        <p class="hint">Mobile targets that flee approaching boids. Boids chase them based on Prey × weight.<br>Right-click a prey to remove it.</p>
+        <div class="btn-row">
+          <button class="btn-ghost" id="placePreyBtn">⊕ Add Prey</button>
+          <button class="btn-ghost" id="clearPreyBtn">Clear All</button>
+        </div>
+      </section>
+
+      <!-- BORDER BEHAVIOR -->
       <section class="sec">
         <h2 class="sec-title">Border Behavior</h2>
         <div class="chip-grid" id="borderPicker">
@@ -540,14 +198,18 @@ canvas.mini-chart {
       <!-- BOID STYLE -->
       <section class="sec">
         <h2 class="sec-title">Boid Style</h2>
-        <div class="chip-grid" id="designPicker">
-          <button class="chip active" data-design="arrow">
+        <div class="chip-grid" id="designPicker" style="grid-template-columns: repeat(4, 1fr)">
+          <button class="chip" data-design="arrow">
             <svg viewBox="0 0 20 20"><polygon points="17,10 4,5 7,10 4,15" fill="currentColor"/></svg>
             Arrow
           </button>
           <button class="chip" data-design="bird">
             <svg viewBox="0 0 20 20"><polygon points="16,10 7,7.5 8.5,10 7,12.5" fill="currentColor"/><polygon points="8.5,10 3,7 5,10 3,13" fill="currentColor" opacity=".55"/></svg>
             Bird
+          </button>
+          <button class="chip" data-design="fish">
+            <svg viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="6" ry="3" fill="currentColor"/><polygon points="4,10 2,7 2,13" fill="currentColor" opacity=".6"/></svg>
+            Fish
           </button>
           <button class="chip" data-design="dot">
             <svg viewBox="0 0 20 20"><circle cx="8" cy="10" r="3.5" fill="currentColor"/><line x1="11.5" y1="10" x2="17" y2="10" stroke="currentColor" stroke-width="1.8"/></svg>
@@ -565,18 +227,29 @@ canvas.mini-chart {
             <svg viewBox="0 0 20 20"><circle cx="8" cy="10" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="12" y1="10" x2="17" y2="10" stroke="currentColor" stroke-width="1.8"/></svg>
             Ring
           </button>
+          <button class="chip" data-design="cross">
+            <svg viewBox="0 0 20 20"><line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="11" y1="6" x2="11" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Cross
+          </button>
         </div>
+
         <div class="row-slider" style="margin-top:10px">
           <label>Size</label>
           <input type="range" id="boidSize" min="0.3" max="3" step="0.05" value="1.0" />
           <span class="val mono" id="boidSizeVal">1.0</span>
+        </div>
+
+        <div class="color-row">
+          <label>Color</label>
+          <input type="color" id="boidColorPicker" value="#22d3ee" />
+          <button class="color-random" id="randomColorBtn">Random palette</button>
         </div>
       </section>
 
       <!-- OBSTACLES -->
       <section class="sec">
         <h2 class="sec-title">Obstacles</h2>
-        <p class="hint">Select a shape → click canvas to place.<br>Right-click canvas to remove nearest. Scroll wheel to resize.</p>
+        <p class="hint">Select a shape → click canvas to place.<br>Right-click to remove nearest. Scroll to resize.</p>
         <div class="chip-grid obs-grid" id="obsPicker">
           <button class="chip" data-shape="circle">
             <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
@@ -639,7 +312,7 @@ canvas.mini-chart {
       </section>
 
       <!-- SELECTED AGENT INFO -->
-      <section class="sec info-sec" id="infoSection" hidden>
+      <section class="sec" id="infoSection" style="background:rgba(255,255,255,0.015)" hidden>
         <h2 class="sec-title">
           Selected Agent
           <button class="close-btn" id="infoClose">✕</button>
@@ -684,1287 +357,6 @@ canvas.mini-chart {
 
 </div>
 
-<script>
-'use strict';
-
-// ============================================================
-//  VECTOR CLASS
-// ============================================================
-class Vector {
-  constructor(x = 0, y = 0) { this.x = x; this.y = y; }
-  add(v)   { return new Vector(this.x + v.x, this.y + v.y); }
-  sub(v)   { return new Vector(this.x - v.x, this.y - v.y); }
-  mul(s)   { return new Vector(this.x * s, this.y * s); }
-  div(s)   { return s !== 0 ? new Vector(this.x / s, this.y / s) : new Vector(); }
-  mag()    { return Math.hypot(this.x, this.y); }
-  norm()   { const m = this.mag(); return m > 0 ? this.div(m) : new Vector(); }
-  limit(m) { const mg = this.mag(); return mg > m ? this.norm().mul(m) : this.copy(); }
-  dist(v)  { return Math.hypot(this.x - v.x, this.y - v.y); }
-  copy()   { return new Vector(this.x, this.y); }
-  iadd(v)  { this.x += v.x; this.y += v.y; return this; }
-  dot(v)   { return this.x * v.x + this.y * v.y; }
-}
-
-// ============================================================
-//  BOID DESIGNS
-// ============================================================
-const DESIGNS = {
-  arrow(ctx, r, color) {
-    ctx.beginPath();
-    ctx.moveTo(r * 2.5, 0);
-    ctx.lineTo(-r, r * 0.95);
-    ctx.lineTo(-r * 0.3, 0);
-    ctx.lineTo(-r, -r * 0.95);
-    ctx.closePath();
-    ctx.fillStyle = color; ctx.fill();
-  },
-  bird(ctx, r, color) {
-    ctx.beginPath();
-    ctx.moveTo(r * 2.2, 0); ctx.lineTo(0, r * 0.45);
-    ctx.lineTo(-r * 0.9, 0); ctx.lineTo(0, -r * 0.45);
-    ctx.closePath(); ctx.fillStyle = color; ctx.fill();
-    const prev = ctx.globalAlpha; ctx.globalAlpha = 0.5;
-    ctx.beginPath(); ctx.moveTo(r * 0.4, 0); ctx.lineTo(-r * 0.4, -r * 1.7); ctx.lineTo(-r, -r * 0.3); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(r * 0.4, 0); ctx.lineTo(-r * 0.4, r * 1.7); ctx.lineTo(-r, r * 0.3); ctx.closePath(); ctx.fill();
-    ctx.globalAlpha = prev;
-  },
-  dot(ctx, r, color) {
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fillStyle = color; ctx.fill();
-    ctx.beginPath(); ctx.moveTo(r, 0); ctx.lineTo(r * 2.8, 0);
-    ctx.strokeStyle = color; ctx.lineWidth = 1.8; ctx.stroke();
-  },
-  diamond(ctx, r, color) {
-    ctx.beginPath();
-    ctx.moveTo(r * 2.3, 0); ctx.lineTo(0, r * 1.1);
-    ctx.lineTo(-r * 1.1, 0); ctx.lineTo(0, -r * 1.1);
-    ctx.closePath(); ctx.fillStyle = color; ctx.fill();
-  },
-  dart(ctx, r, color) {
-    ctx.beginPath();
-    ctx.moveTo(r * 3.2, 0); ctx.lineTo(-r * 0.4, r * 0.5);
-    ctx.lineTo(r * 0.5, 0); ctx.lineTo(-r * 0.4, -r * 0.5);
-    ctx.closePath(); ctx.fillStyle = color; ctx.fill();
-  },
-  ring(ctx, r, color) {
-    ctx.beginPath(); ctx.arc(0, 0, r * 1.4, 0, Math.PI * 2);
-    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(r * 1.4, 0); ctx.lineTo(r * 2.8, 0);
-    ctx.strokeStyle = color; ctx.lineWidth = 1.6; ctx.stroke();
-    ctx.beginPath(); ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = color; ctx.fill();
-  },
-};
-
-// ============================================================
-//  PARAMS
-// ============================================================
-const params = {
-  cohesionWeight:   1.0,
-  alignmentWeight:  1.0,
-  separationWeight: 1.5,
-  foodWeight:       0.8,
-  cohesionRadius:   80,
-  alignmentRadius:  60,
-  separationRadius: 30,
-  fovAngle:         270,        // degrees, 360 = omnidirectional
-  maxSpeed:         3.5,
-  maxForce:         0.12,
-  trailAlpha:       0.15,
-  design:           'arrow',
-  borderMode:       'wrap',
-  boidSize:         1.0,
-  speedVariation:   true,
-  predictiveAvoid:  true,
-};
-
-const COLORS = [
-  '#22d3ee','#818cf8','#86efac','#fb7185',
-  '#fbbf24','#c084fc','#38bdf8','#f472b6',
-];
-
-// ============================================================
-//  SPATIAL GRID — O(n) neighbor lookup
-// ============================================================
-class SpatialGrid {
-  constructor(cellSize) {
-    this.cellSize = cellSize;
-    this.cells = new Map();
-  }
-  _key(cx, cy) { return (cx & 0xFFFF) | ((cy & 0xFFFF) << 16); }
-  clear() { this.cells.clear(); }
-  insert(boid) {
-    const cx = Math.floor(boid.pos.x / this.cellSize);
-    const cy = Math.floor(boid.pos.y / this.cellSize);
-    const k = this._key(cx, cy);
-    if (!this.cells.has(k)) this.cells.set(k, []);
-    this.cells.get(k).push(boid);
-  }
-  query(x, y, radius) {
-    const results = [];
-    const r = Math.ceil(radius / this.cellSize);
-    const cx0 = Math.floor(x / this.cellSize);
-    const cy0 = Math.floor(y / this.cellSize);
-    for (let dx = -r; dx <= r; dx++) {
-      for (let dy = -r; dy <= r; dy++) {
-        const k = this._key(cx0 + dx, cy0 + dy);
-        const cell = this.cells.get(k);
-        if (cell) for (const b of cell) results.push(b);
-      }
-    }
-    return results;
-  }
-}
-
-const grid = new SpatialGrid(100);
-
-// ============================================================
-//  BOID CLASS
-// ============================================================
-class Boid {
-  constructor(x, y) {
-    this.pos   = new Vector(x, y);
-    const a    = Math.random() * Math.PI * 2;
-    const spd  = 1 + Math.random() * 2;
-    this.vel   = new Vector(Math.cos(a) * spd, Math.sin(a) * spd);
-    this.acc   = new Vector();
-    this.r     = 4.5;
-    this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
-    this._dCoh = 0; this._dAli = 0; this._dSep = 0; this._dNeighbors = 0;
-    // Per-boid comfort speed (slight variation for realism)
-    this.comfortSpeed = params.maxSpeed * (0.75 + Math.random() * 0.5);
-  }
-
-  // Check if another position is within FOV
-  _inFov(otherPos) {
-    if (params.fovAngle >= 360) return true;
-    const halfFov = (params.fovAngle * Math.PI / 180) / 2;
-    const myHeading = Math.atan2(this.vel.y, this.vel.x);
-    const toOther = Math.atan2(otherPos.y - this.pos.y, otherPos.x - this.pos.x);
-    let diff = toOther - myHeading;
-    // Normalize to [-π, π]
-    while (diff > Math.PI) diff -= 2 * Math.PI;
-    while (diff < -Math.PI) diff += 2 * Math.PI;
-    return Math.abs(diff) <= halfFov;
-  }
-
-  flock(obstacles, foodTarget, w, h) {
-    const neighbors = grid.query(this.pos.x, this.pos.y, Math.max(params.cohesionRadius, params.alignmentRadius, params.separationRadius));
-
-    const coh = this._cohesion(neighbors);
-    const ali = this._alignment(neighbors);
-    const sep = this._separation(neighbors);
-    const obs = params.predictiveAvoid
-      ? this._predictiveAvoidObstacles(obstacles)
-      : this._avoidObstacles(obstacles);
-    const food = foodTarget ? this._seekFood(foodTarget) : null;
-
-    this._dCoh = coh.mag();
-    this._dAli = ali.mag();
-    this._dSep = sep.mag();
-
-    this.acc.iadd(coh.mul(params.cohesionWeight));
-    this.acc.iadd(ali.mul(params.alignmentWeight));
-    this.acc.iadd(sep.mul(params.separationWeight));
-    if (obs) this.acc.iadd(obs);
-    if (food) this.acc.iadd(food.mul(params.foodWeight));
-    if (params.borderMode === 'soft') this.acc.iadd(this._softWalls(w, h));
-  }
-
-  _softWalls(w, h) {
-    const margin = 90, str = 0.55;
-    const f = new Vector();
-    if (this.pos.x < margin)     f.x += (margin - this.pos.x) / margin * str;
-    if (this.pos.x > w - margin) f.x -= (this.pos.x - (w - margin)) / margin * str;
-    if (this.pos.y < margin)     f.y += (margin - this.pos.y) / margin * str;
-    if (this.pos.y > h - margin) f.y -= (this.pos.y - (h - margin)) / margin * str;
-    return f;
-  }
-
-  update(w, h) {
-    // Speed variation: alone boids slow down, grouped boids match the flock
-    let targetSpeed = params.maxSpeed;
-    if (params.speedVariation) {
-      if (this._dNeighbors === 0) {
-        targetSpeed = params.maxSpeed * 0.55; // alone → slower
-      } else if (this._dNeighbors > 3) {
-        targetSpeed = params.maxSpeed;         // in group → full speed
-      } else {
-        targetSpeed = params.maxSpeed * 0.8;
-      }
-    }
-
-    this.vel = this.vel.add(this.acc).limit(targetSpeed);
-    // Ensure minimum speed so boids don't freeze
-    const spd = this.vel.mag();
-    if (spd < 0.3 && spd > 0) this.vel = this.vel.norm().mul(0.3);
-
-    this.pos = this.pos.add(this.vel);
-    this.acc = new Vector();
-
-    switch (params.borderMode) {
-      case 'wrap':
-        if (this.pos.x < 0) this.pos.x += w;
-        if (this.pos.x > w) this.pos.x -= w;
-        if (this.pos.y < 0) this.pos.y += h;
-        if (this.pos.y > h) this.pos.y -= h;
-        break;
-      case 'bounce':
-        if (this.pos.x <= 0)  { this.pos.x = 0; this.vel.x =  Math.abs(this.vel.x); }
-        if (this.pos.x >= w)  { this.pos.x = w; this.vel.x = -Math.abs(this.vel.x); }
-        if (this.pos.y <= 0)  { this.pos.y = 0; this.vel.y =  Math.abs(this.vel.y); }
-        if (this.pos.y >= h)  { this.pos.y = h; this.vel.y = -Math.abs(this.vel.y); }
-        break;
-      case 'soft':
-        this.pos.x = Math.max(0, Math.min(w, this.pos.x));
-        this.pos.y = Math.max(0, Math.min(h, this.pos.y));
-        break;
-    }
-  }
-
-  show(ctx, isSelected) {
-    const angle = Math.atan2(this.vel.y, this.vel.x);
-    const r = this.r * params.boidSize;
-    ctx.save();
-    ctx.translate(this.pos.x, this.pos.y);
-    ctx.rotate(angle);
-    ctx.shadowBlur  = isSelected ? 22 : 9;
-    ctx.shadowColor = isSelected ? '#fff' : this.color;
-    DESIGNS[params.design](ctx, r, this.color);
-    ctx.restore();
-
-    if (isSelected) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(this.pos.x, this.pos.y, 16 * Math.max(0.6, params.boidSize), 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  showRadii(ctx) {
-    const rings = [
-      { r: params.cohesionRadius,   fill: 'rgba(34,211,238,0.06)',  stroke: 'rgba(34,211,238,0.35)' },
-      { r: params.alignmentRadius,  fill: 'rgba(134,239,172,0.06)', stroke: 'rgba(134,239,172,0.3)' },
-      { r: params.separationRadius, fill: 'rgba(251,113,133,0.08)', stroke: 'rgba(251,113,133,0.45)' },
-    ];
-    for (const { r, fill, stroke } of rings) {
-      ctx.beginPath();
-      ctx.arc(this.pos.x, this.pos.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
-    }
-
-    // Draw FOV cone if not 360
-    if (params.fovAngle < 360) {
-      const halfFov = (params.fovAngle * Math.PI / 180) / 2;
-      const heading = Math.atan2(this.vel.y, this.vel.x);
-      const maxR = Math.max(params.cohesionRadius, params.alignmentRadius);
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(this.pos.x, this.pos.y);
-      ctx.arc(this.pos.x, this.pos.y, maxR, heading - halfFov, heading + halfFov);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(255,255,255,0.04)';
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 5]);
-      ctx.fill();
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
-    }
-  }
-
-  _cohesion(candidates) {
-    const center = new Vector(); let count = 0;
-    for (const b of candidates) {
-      if (b === this) continue;
-      if (this.pos.dist(b.pos) < params.cohesionRadius && this._inFov(b.pos)) {
-        center.iadd(b.pos); count++;
-      }
-    }
-    this._dNeighbors = count;
-    if (count === 0) return new Vector();
-    return this._steerTo(center.div(count));
-  }
-
-  _alignment(candidates) {
-    const avg = new Vector(); let count = 0;
-    for (const b of candidates) {
-      if (b === this) continue;
-      if (this.pos.dist(b.pos) < params.alignmentRadius && this._inFov(b.pos)) {
-        avg.iadd(b.vel); count++;
-      }
-    }
-    if (count === 0) return new Vector();
-    return avg.div(count).norm().mul(params.maxSpeed).sub(this.vel).limit(params.maxForce);
-  }
-
-  _separation(candidates) {
-    const steer = new Vector(); let count = 0;
-    for (const b of candidates) {
-      if (b === this) continue;
-      const d = this.pos.dist(b.pos);
-      if (d > 0 && d < params.separationRadius) {
-        steer.iadd(this.pos.sub(b.pos).norm().div(d)); count++;
-      }
-    }
-    if (count === 0) return new Vector();
-    return steer.div(count).norm().mul(params.maxSpeed).sub(this.vel).limit(params.maxForce);
-  }
-
-  // Original proximity-based repulsion
-  _avoidObstacles(obstacles) {
-    if (!obstacles.length) return null;
-    const steer = new Vector(); let any = false;
-    for (const obs of obstacles) {
-      const f = obs.getRepulsion(this.pos);
-      if (f) { steer.iadd(f); any = true; }
-    }
-    if (!any) return null;
-    return steer.norm().mul(params.maxSpeed).sub(this.vel).limit(params.maxForce * 5);
-  }
-
-  // Predictive avoidance: cast a ray ahead, steer laterally before impact
-  _predictiveAvoidObstacles(obstacles) {
-    if (!obstacles.length) return null;
-
-    const LOOK_AHEAD = 40 + this.vel.mag() * 10;
-    const vel = this.vel;
-    const speed = vel.mag() || 0.001;
-    const fwd = vel.norm();
-
-    // Try forward point
-    const ahead  = this.pos.add(fwd.mul(LOOK_AHEAD));
-    const ahead2 = this.pos.add(fwd.mul(LOOK_AHEAD * 0.5));
-
-    for (const obs of obstacles) {
-      const hitFull = obs.containsPoint(ahead.x, ahead.y);
-      const hitHalf = obs.containsPoint(ahead2.x, ahead2.y);
-
-      if (hitFull || hitHalf) {
-        // Steer away from obstacle center
-        const avoidDir = new Vector(
-          this.pos.x - obs.x,
-          this.pos.y - obs.y
-        ).norm();
-
-        // If too close: also add direct repulsion
-        const dist = Math.hypot(this.pos.x - obs.x, this.pos.y - obs.y);
-        const str = hitFull ? params.maxForce * 8 : params.maxForce * 4;
-        return avoidDir.mul(str);
-      }
-    }
-
-    // Fall back to proximity repulsion if no ray hit
-    return this._avoidObstacles(obstacles);
-  }
-
-  _seekFood(target) {
-    const desired = target.sub(this.pos).norm().mul(params.maxSpeed);
-    return desired.sub(this.vel).limit(params.maxForce * 2);
-  }
-
-  _steerTo(target) {
-    return target.sub(this.pos).norm().mul(params.maxSpeed).sub(this.vel).limit(params.maxForce);
-  }
-}
-
-// ============================================================
-//  POINT-IN-POLYGON
-// ============================================================
-function pointInPolygon(px, py, pts) {
-  let inside = false;
-  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-    const xi = pts[i].x, yi = pts[i].y, xj = pts[j].x, yj = pts[j].y;
-    if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi))
-      inside = !inside;
-  }
-  return inside;
-}
-
-// ============================================================
-//  OBSTACLE CLASS
-// ============================================================
-class Obstacle {
-  constructor(type, x, y, opts = {}) {
-    this.type  = type;
-    this.x     = x;
-    this.y     = y;
-    this.scale = opts.scale || 1.0;
-    this.angle = opts.angle || 0;
-    switch (type) {
-      case 'circle': this.baseR = 35; break;
-      case 'square': this.baseW = 60; this.baseH = 60; break;
-      case 'rect':   this.baseW = 110; this.baseH = 45; break;
-      case 'tube':   this.baseR = 14; this.baseLen = 90; break;
-      case 'polygon':
-        this.points = opts.points ? opts.points.map(p => ({ x: p.x, y: p.y })) : [];
-        this._computeCentroid(); break;
-    }
-  }
-
-  _computeCentroid() {
-    if (!this.points || !this.points.length) return;
-    let cx = 0, cy = 0;
-    for (const p of this.points) { cx += p.x; cy += p.y; }
-    this.x = cx / this.points.length;
-    this.y = cy / this.points.length;
-  }
-
-  get r()   { return (this.baseR   || 35) * this.scale; }
-  get w()   { return (this.baseW   || 60) * this.scale; }
-  get h()   { return (this.baseH   || 45) * this.scale; }
-  get len() { return (this.baseLen || 90) * this.scale; }
-
-  _toLocal(px, py) {
-    const c = Math.cos(-this.angle), s = Math.sin(-this.angle);
-    const dx = px - this.x, dy = py - this.y;
-    return { lx: c * dx - s * dy, ly: s * dx + c * dy };
-  }
-
-  _toWorld(lx, ly) {
-    const c = Math.cos(this.angle), s = Math.sin(this.angle);
-    return { wx: c * lx - s * ly, wy: s * lx + c * ly };
-  }
-
-  _scaledPoints() {
-    return this.points.map(p => ({
-      x: this.x + (p.x - this.x) * this.scale,
-      y: this.y + (p.y - this.y) * this.scale,
-    }));
-  }
-
-  // For predictive avoidance: broad check if point is inside obstacle + margin
-  containsPoint(px, py) {
-    const MARGIN = 28;
-    if (this.type === 'polygon') {
-      const pts = this._scaledPoints();
-      // Check point proximity to any edge
-      for (let i = 0; i < pts.length; i++) {
-        const a = pts[i], b = pts[(i+1) % pts.length];
-        const abx = b.x - a.x, aby = b.y - a.y;
-        const apx = px - a.x, apy = py - a.y;
-        const lenSq = abx*abx + aby*aby;
-        const t = lenSq > 0 ? Math.max(0, Math.min(1, (apx*abx + apy*aby)/lenSq)) : 0;
-        const nx = a.x + t*abx, ny = a.y + t*aby;
-        if (Math.hypot(px-nx, py-ny) < MARGIN) return true;
-      }
-      return pointInPolygon(px, py, pts);
-    }
-    const { lx, ly } = this._toLocal(px, py);
-    switch (this.type) {
-      case 'circle': return Math.hypot(lx, ly) < this.r + MARGIN;
-      case 'square': case 'rect':
-        return Math.abs(lx) < this.w/2 + MARGIN && Math.abs(ly) < this.h/2 + MARGIN;
-      case 'tube': {
-        const hw = this.len/2;
-        const cx = Math.max(-hw, Math.min(lx, hw));
-        return Math.hypot(lx-cx, ly) < this.r + MARGIN;
-      }
-    }
-    return false;
-  }
-
-  getRepulsion(pos) {
-    const FIELD = 45;
-    if (this.type === 'polygon') {
-      const pts = this._scaledPoints();
-      let minDist = Infinity, repX = 0, repY = 0;
-      for (let i = 0; i < pts.length; i++) {
-        const a = pts[i], b = pts[(i + 1) % pts.length];
-        const abx = b.x - a.x, aby = b.y - a.y;
-        const apx = pos.x - a.x, apy = pos.y - a.y;
-        const lenSq = abx*abx + aby*aby;
-        const t = lenSq > 0 ? Math.max(0, Math.min(1, (apx*abx + apy*aby)/lenSq)) : 0;
-        const nx = a.x + t*abx, ny = a.y + t*aby;
-        const dx = pos.x - nx, dy = pos.y - ny;
-        const dist = Math.hypot(dx, dy) || 0.001;
-        if (dist < minDist) { minDist = dist; repX = dx/dist; repY = dy/dist; }
-      }
-      if (pointInPolygon(pos.x, pos.y, pts)) return new Vector(repX*3, repY*3);
-      if (minDist < FIELD) { const f = (FIELD - minDist)/FIELD; return new Vector(repX*f, repY*f); }
-      return null;
-    }
-    const { lx, ly } = this._toLocal(pos.x, pos.y);
-    let ldx, ldy, dist, f;
-    switch (this.type) {
-      case 'circle': {
-        dist = Math.hypot(lx, ly) || 0.001;
-        const edge = dist - this.r;
-        if (edge < FIELD) {
-          f = Math.max(0, (FIELD - edge)/FIELD);
-          const { wx, wy } = this._toWorld(lx/dist*f, ly/dist*f);
-          return new Vector(wx, wy);
-        }
-        return null;
-      }
-      case 'square': case 'rect': {
-        const nx2 = Math.max(-this.w/2, Math.min(lx, this.w/2));
-        const ny2 = Math.max(-this.h/2, Math.min(ly, this.h/2));
-        ldx = lx-nx2; ldy = ly-ny2;
-        dist = Math.hypot(ldx, ldy) || 0.001;
-        if (dist < FIELD) {
-          f = (FIELD-dist)/FIELD;
-          const { wx, wy } = this._toWorld(ldx/dist*f, ldy/dist*f);
-          return new Vector(wx, wy);
-        }
-        return null;
-      }
-      case 'tube': {
-        const hw = this.len/2;
-        const cx2 = Math.max(-hw, Math.min(lx, hw));
-        ldx = lx-cx2; ldy = ly;
-        dist = Math.hypot(ldx, ldy) || 0.001;
-        const edge = dist - this.r;
-        if (edge < FIELD) {
-          f = Math.max(0, (FIELD-edge)/FIELD);
-          const { wx, wy } = this._toWorld(ldx/dist*f, ldy/dist*f);
-          return new Vector(wx, wy);
-        }
-        return null;
-      }
-    }
-    return null;
-  }
-
-  draw(ctx, hovered, selected) {
-    if (this.type === 'polygon') { this._drawPolygon(ctx, hovered, selected); return; }
-    const fill   = selected ? 'rgba(92,112,240,0.18)' : hovered ? 'rgba(251,113,133,0.18)' : 'rgba(255,255,255,0.07)';
-    const stroke = selected ? 'rgba(92,112,240,0.9)'  : hovered ? 'rgba(251,113,133,0.9)'  : 'rgba(200,210,240,0.3)';
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(this.angle);
-    ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = selected ? 2 : 1.5;
-    switch (this.type) {
-      case 'circle':
-        ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI*2); ctx.fill(); ctx.stroke(); break;
-      case 'square': case 'rect':
-        ctx.beginPath(); roundRect(ctx, -this.w/2, -this.h/2, this.w, this.h, 4); ctx.fill(); ctx.stroke(); break;
-      case 'tube': {
-        const hw = this.len/2, r = this.r;
-        ctx.beginPath();
-        ctx.moveTo(-hw, -r); ctx.lineTo(hw, -r);
-        ctx.arc(hw, 0, r, -Math.PI/2, Math.PI/2);
-        ctx.lineTo(-hw, r);
-        ctx.arc(-hw, 0, r, Math.PI/2, -Math.PI/2);
-        ctx.closePath(); ctx.fill(); ctx.stroke(); break;
-      }
-    }
-    ctx.restore();
-  }
-
-  _drawPolygon(ctx, hovered, selected) {
-    const pts = this._scaledPoints();
-    if (pts.length < 2) return;
-    const fill   = selected ? 'rgba(92,112,240,0.18)' : hovered ? 'rgba(251,113,133,0.18)' : 'rgba(255,255,255,0.07)';
-    const stroke = selected ? 'rgba(92,112,240,0.9)'  : hovered ? 'rgba(251,113,133,0.9)'  : 'rgba(200,210,240,0.3)';
-    ctx.save();
-    ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = selected ? 2 : 1.5;
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.restore();
-  }
-
-  distToCenter(px, py) { return Math.hypot(px - this.x, py - this.y); }
-  resize(delta) { this.scale = Math.max(0.15, Math.min(6, this.scale + delta)); }
-
-  duplicate(offsetX = 30, offsetY = 30) {
-    if (this.type === 'polygon') {
-      return new Obstacle('polygon', 0, 0, {
-        scale: this.scale,
-        points: this.points.map(p => ({ x: p.x + offsetX, y: p.y + offsetY })),
-      });
-    }
-    return new Obstacle(this.type, this.x + offsetX, this.y + offsetY, { scale: this.scale, angle: this.angle });
-  }
-}
-
-// ============================================================
-//  POLYGON DRAWING STATE
-// ============================================================
-const polygonDraw = {
-  points: [],
-  reset() { this.points = []; },
-  canClose() { return this.points.length >= 3; },
-  isNearFirst(x, y, threshold = 18) {
-    if (!this.points.length) return false;
-    return Math.hypot(x - this.points[0].x, y - this.points[0].y) < threshold;
-  },
-  addPoint(x, y) { this.points.push({ x, y }); },
-  close(obstacles) {
-    if (this.canClose()) obstacles.push(new Obstacle('polygon', 0, 0, { points: this.points.slice() }));
-    this.reset();
-  },
-  drawPreview(ctx, mx, my) {
-    if (!this.points.length) return;
-    ctx.save();
-    ctx.strokeStyle = 'rgba(251,113,133,0.75)';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(this.points[0].x, this.points[0].y);
-    for (let i = 1; i < this.points.length; i++) ctx.lineTo(this.points[i].x, this.points[i].y);
-    ctx.lineTo(mx, my);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    for (let i = 0; i < this.points.length; i++) {
-      const p = this.points[i];
-      const isFirst = i === 0;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, isFirst ? 5.5 : 3, 0, Math.PI * 2);
-      ctx.fillStyle = isFirst ? 'rgba(251,113,133,1)' : 'rgba(251,113,133,0.7)';
-      ctx.fill();
-    }
-    if (this.canClose() && this.isNearFirst(mx, my)) {
-      ctx.beginPath();
-      ctx.arc(this.points[0].x, this.points[0].y, 13, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(251,113,133,0.55)';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([3, 3]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    ctx.restore();
-  }
-};
-
-function roundRect(ctx, x, y, w, h, r) {
-  if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); return; }
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-}
-
-// ============================================================
-//  MINI CHARTS
-// ============================================================
-const CHART_LEN = 120;
-const chartSpeedData    = new Array(CHART_LEN).fill(0);
-const chartPolarityData = new Array(CHART_LEN).fill(0);
-
-function pushChart(data, val) { data.push(val); if (data.length > CHART_LEN) data.shift(); }
-
-function drawMiniChart(canvasEl, data, color, maxVal) {
-  const w = canvasEl.width, h = canvasEl.height;
-  const dctx = canvasEl.getContext('2d');
-  dctx.clearRect(0, 0, w, h);
-
-  // Grid line
-  dctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  dctx.lineWidth = 1;
-  dctx.beginPath();
-  dctx.moveTo(0, h / 2);
-  dctx.lineTo(w, h / 2);
-  dctx.stroke();
-
-  if (!data.length) return;
-
-  const mx = maxVal || Math.max(...data) || 1;
-  const step = w / (CHART_LEN - 1);
-
-  // Fill
-  const grad = dctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, color + '55');
-  grad.addColorStop(1, color + '00');
-  dctx.beginPath();
-  dctx.moveTo(0, h);
-  for (let i = 0; i < data.length; i++) {
-    const x = i * step;
-    const y = h - (data[i] / mx) * h;
-    i === 0 ? dctx.lineTo(x, y) : dctx.lineTo(x, y);
-  }
-  dctx.lineTo((data.length - 1) * step, h);
-  dctx.closePath();
-  dctx.fillStyle = grad;
-  dctx.fill();
-
-  // Line
-  dctx.beginPath();
-  for (let i = 0; i < data.length; i++) {
-    const x = i * step;
-    const y = h - (data[i] / mx) * h;
-    i === 0 ? dctx.moveTo(x, y) : dctx.lineTo(x, y);
-  }
-  dctx.strokeStyle = color;
-  dctx.lineWidth = 1.5;
-  dctx.stroke();
-}
-
-// ============================================================
-//  SIMULATION STATE
-// ============================================================
-const canvas = document.getElementById('boidsCanvas');
-const ctx    = canvas.getContext('2d');
-
-let boids          = [];
-let obstacles      = [];
-let foodTarget     = null;   // Vector | null
-let selectedBoid   = null;
-let selectedObsIdx = -1;
-let obstacleMode   = null;
-let foodMode       = false;
-let hoveredObs     = -1;
-let mousePos       = { x: 0, y: 0 };
-let lastInfoUpdate = 0;
-let lastChartUpdate = 0;
-let frameCount = 0;
-
-const INIT_COUNT = 80;
-
-function resize() {
-  canvas.width  = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
-}
-
-function spawnBoid(x, y) {
-  boids.push(new Boid(
-    x !== undefined ? x : Math.random() * canvas.width,
-    y !== undefined ? y : Math.random() * canvas.height
-  ));
-  updateAgentBadge();
-}
-
-function updateAgentBadge() {
-  document.getElementById('agentCount').textContent = boids.length;
-}
-
-function setBoidCount(n) {
-  n = Math.max(1, Math.min(500, Math.round(n)));
-  while (boids.length < n) spawnBoid();
-  while (boids.length > n) {
-    const removed = boids.pop();
-    if (removed === selectedBoid) { selectedBoid = null; hideInfo(); }
-  }
-  updateAgentBadge();
-  document.getElementById('boidCountSlider').value = boids.length;
-  document.getElementById('boidCountInput').value  = boids.length;
-}
-
-function reset() {
-  boids = []; obstacles = []; foodTarget = null;
-  selectedBoid = null; selectedObsIdx = -1;
-  polygonDraw.reset();
-  for (let i = 0; i < INIT_COUNT; i++) spawnBoid();
-  hideInfo(); hideObsInfo();
-  setObstacleMode(null);
-  setFoodMode(false);
-  document.getElementById('boidCountSlider').value = INIT_COUNT;
-  document.getElementById('boidCountInput').value  = INIT_COUNT;
-  updateAgentBadge();
-}
-
-// ============================================================
-//  MAIN LOOP
-// ============================================================
-function loop() {
-  frameCount++;
-
-  // Trail effect
-  ctx.fillStyle = `rgba(12,14,20,${params.trailAlpha})`;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Border indicator
-  if (params.borderMode === 'bounce') {
-    ctx.save();
-    ctx.strokeStyle = 'rgba(92,112,240,0.18)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
-    ctx.restore();
-  } else if (params.borderMode === 'soft') {
-    const m = 90;
-    ctx.save();
-    ctx.strokeStyle = 'rgba(92,112,240,0.12)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([6, 6]);
-    ctx.strokeRect(m, m, canvas.width - m*2, canvas.height - m*2);
-    ctx.setLineDash([]);
-    ctx.restore();
-  }
-
-  // Draw food target
-  if (foodTarget) {
-    const t = Date.now() / 600;
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(foodTarget.x, foodTarget.y, 10 + Math.sin(t) * 3, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(251,191,36,0.18)';
-    ctx.strokeStyle = 'rgba(251,191,36,0.85)';
-    ctx.lineWidth = 1.8;
-    ctx.fill(); ctx.stroke();
-    // Inner dot
-    ctx.beginPath();
-    ctx.arc(foodTarget.x, foodTarget.y, 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#fbbf24';
-    ctx.fill();
-    // Radiating ring
-    const ringR = 18 + Math.sin(t * 0.8) * 5;
-    ctx.beginPath();
-    ctx.arc(foodTarget.x, foodTarget.y, ringR, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(251,191,36,${0.2 + Math.sin(t) * 0.1})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // Obstacles
-  for (let i = 0; i < obstacles.length; i++) {
-    obstacles[i].draw(ctx, i === hoveredObs, i === selectedObsIdx);
-  }
-
-  // Polygon drawing preview
-  if (obstacleMode === 'polygon') {
-    polygonDraw.drawPreview(ctx, mousePos.x, mousePos.y);
-  }
-
-  // Ghost preview
-  if (obstacleMode && obstacleMode !== 'polygon' && canvas.matches(':hover')) {
-    const preview = new Obstacle(obstacleMode, mousePos.x, mousePos.y);
-    ctx.save(); ctx.globalAlpha = 0.4;
-    preview.draw(ctx, false, false);
-    ctx.restore();
-  }
-
-  // Rebuild spatial grid each frame
-  grid.clear();
-  for (const b of boids) grid.insert(b);
-
-  // Selected boid radii (behind boids)
-  if (selectedBoid && boids.includes(selectedBoid)) {
-    selectedBoid.showRadii(ctx);
-  }
-
-  // Boids
-  for (const b of boids) {
-    b.flock(obstacles, foodTarget, canvas.width, canvas.height);
-    b.update(canvas.width, canvas.height);
-    b.show(ctx, b === selectedBoid);
-  }
-
-  // Chart updates ~15fps
-  const now = performance.now();
-  if (now - lastChartUpdate > 66) {
-    updateCharts();
-    lastChartUpdate = now;
-  }
-
-  // Agent info panel ~30fps
-  if (now - lastInfoUpdate > 33 && selectedBoid) {
-    if (boids.includes(selectedBoid)) updateInfoPanel(selectedBoid);
-    else { selectedBoid = null; hideInfo(); }
-    lastInfoUpdate = now;
-  }
-
-  requestAnimationFrame(loop);
-}
-
-function updateCharts() {
-  if (!boids.length) return;
-
-  // Average speed
-  let sumSpeed = 0;
-  for (const b of boids) sumSpeed += b.vel.mag();
-  const avgSpeed = sumSpeed / boids.length;
-  pushChart(chartSpeedData, avgSpeed);
-  document.getElementById('chartSpeedVal').textContent = avgSpeed.toFixed(2);
-
-  // Polarity: average unit velocity dot products → group alignment (0–1)
-  let sx = 0, sy = 0;
-  for (const b of boids) {
-    const m = b.vel.mag() || 1;
-    sx += b.vel.x / m;
-    sy += b.vel.y / m;
-  }
-  const polarity = Math.hypot(sx, sy) / boids.length;
-  pushChart(chartPolarityData, polarity);
-  document.getElementById('chartPolarityVal').textContent = Math.round(polarity * 100) + '%';
-
-  const chartSpeedEl    = document.getElementById('chartSpeed');
-  const chartPolarityEl = document.getElementById('chartPolarity');
-  // Scale canvas to match display size
-  chartSpeedEl.width    = chartSpeedEl.offsetWidth    * (window.devicePixelRatio || 1);
-  chartSpeedEl.height   = chartSpeedEl.offsetHeight   * (window.devicePixelRatio || 1);
-  chartPolarityEl.width  = chartPolarityEl.offsetWidth  * (window.devicePixelRatio || 1);
-  chartPolarityEl.height = chartPolarityEl.offsetHeight * (window.devicePixelRatio || 1);
-
-  drawMiniChart(chartSpeedEl,    chartSpeedData,    '#22d3ee', params.maxSpeed);
-  drawMiniChart(chartPolarityEl, chartPolarityData, '#86efac', 1);
-}
-
-// ============================================================
-//  AGENT INFO PANEL
-// ============================================================
-function showInfo(boid) {
-  selectedBoid = boid;
-  document.getElementById('infoSection').hidden = false;
-}
-
-function hideInfo() {
-  selectedBoid = null;
-  document.getElementById('infoSection').hidden = true;
-}
-
-function updateInfoPanel(b) {
-  const spd     = b.vel.mag();
-  const heading = Math.round((Math.atan2(b.vel.y, b.vel.x) * 180 / Math.PI + 360) % 360);
-  document.getElementById('infoSpeed').textContent     = spd.toFixed(2);
-  document.getElementById('infoHeading').textContent   = heading + '°';
-  document.getElementById('infoNeighbors').textContent = b._dNeighbors;
-  document.getElementById('infoPos').textContent       = `${Math.round(b.pos.x)}, ${Math.round(b.pos.y)}`;
-  const scale = params.maxForce || 0.01;
-  const pct   = v => Math.min(100, (v / scale) * 100).toFixed(1) + '%';
-  document.getElementById('barCoh').style.width = pct(b._dCoh);
-  document.getElementById('barAli').style.width = pct(b._dAli);
-  document.getElementById('barSep').style.width = pct(b._dSep);
-  document.getElementById('numCoh').textContent = b._dCoh.toFixed(3);
-  document.getElementById('numAli').textContent = b._dAli.toFixed(3);
-  document.getElementById('numSep').textContent = b._dSep.toFixed(3);
-}
-
-// ============================================================
-//  OBSTACLE INFO PANEL
-// ============================================================
-function showObsInfo(idx) {
-  selectedObsIdx = idx;
-  const obs = obstacles[idx];
-  const scaleFmt = obs.scale.toFixed(2);
-  document.getElementById('obsInfoSection').hidden = false;
-  document.getElementById('obsType').textContent        = obs.type;
-  document.getElementById('obsScaleDisplay').textContent = scaleFmt + '×';
-  document.getElementById('obsSize').value              = obs.scale;
-  document.getElementById('obsSizeVal').textContent     = scaleFmt;
-  const showRot = obs.type === 'square' || obs.type === 'rect' || obs.type === 'tube';
-  document.getElementById('obsRotRow').style.display = showRot ? '' : 'none';
-  if (showRot) {
-    const deg = Math.round(obs.angle * 180 / Math.PI);
-    document.getElementById('obsAngle').value          = deg;
-    document.getElementById('obsAngleVal').textContent = deg + '°';
-  }
-}
-
-function hideObsInfo() {
-  selectedObsIdx = -1;
-  document.getElementById('obsInfoSection').hidden = true;
-}
-
-function syncObsInfoScale(obs) {
-  document.getElementById('obsScaleDisplay').textContent = obs.scale.toFixed(2) + '×';
-  document.getElementById('obsSize').value               = obs.scale;
-  document.getElementById('obsSizeVal').textContent      = obs.scale.toFixed(2);
-}
-
-// ============================================================
-//  CANVAS EVENTS
-// ============================================================
-canvas.addEventListener('click', e => {
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-
-  // Food placement mode
-  if (foodMode) {
-    foodTarget = new Vector(mx, my);
-    setFoodMode(false);
-    return;
-  }
-
-  if (obstacleMode === 'polygon') {
-    if (polygonDraw.canClose() && polygonDraw.isNearFirst(mx, my)) {
-      polygonDraw.close(obstacles);
-    } else {
-      polygonDraw.addPoint(mx, my);
-    }
-    updateModePill();
-    return;
-  }
-
-  if (obstacleMode) {
-    obstacles.push(new Obstacle(obstacleMode, mx, my));
-    return;
-  }
-
-  // Try to select obstacle
-  let nearObs = -1, nearObsDist = 60;
-  for (let i = 0; i < obstacles.length; i++) {
-    const d = obstacles[i].distToCenter(mx, my);
-    if (d < nearObsDist) { nearObsDist = d; nearObs = i; }
-  }
-  if (nearObs !== -1) {
-    if (nearObs === selectedObsIdx) hideObsInfo();
-    else { selectedBoid = null; hideInfo(); showObsInfo(nearObs); }
-    return;
-  }
-
-  // Try to select boid
-  let closest = null, bestDist = 22;
-  for (const b of boids) {
-    const d = b.pos.dist(new Vector(mx, my));
-    if (d < bestDist) { bestDist = d; closest = b; }
-  }
-  if (closest) {
-    if (selectedObsIdx !== -1) hideObsInfo();
-    closest === selectedBoid ? hideInfo() : showInfo(closest);
-    return;
-  }
-
-  if (selectedObsIdx !== -1) { hideObsInfo(); return; }
-  if (selectedBoid)           { hideInfo();    return; }
-
-  spawnBoid(mx, my);
-  setBoidCount(boids.length);
-});
-
-canvas.addEventListener('contextmenu', e => {
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-
-  if (obstacleMode === 'polygon' && polygonDraw.points.length > 0) {
-    polygonDraw.reset(); updateModePill(); return;
-  }
-
-  let nearestIdx = -1, nearestDist = 90;
-  for (let i = 0; i < obstacles.length; i++) {
-    const d = obstacles[i].distToCenter(mx, my);
-    if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
-  }
-  if (nearestIdx !== -1) {
-    if (nearestIdx === selectedObsIdx) hideObsInfo();
-    obstacles.splice(nearestIdx, 1);
-    if (selectedObsIdx >= obstacles.length) selectedObsIdx = -1;
-  }
-});
-
-canvas.addEventListener('mousemove', e => {
-  const rect = canvas.getBoundingClientRect();
-  mousePos.x = e.clientX - rect.left;
-  mousePos.y = e.clientY - rect.top;
-  hoveredObs = -1;
-  for (let i = 0; i < obstacles.length; i++) {
-    if (obstacles[i].distToCenter(mousePos.x, mousePos.y) < 70) { hoveredObs = i; break; }
-  }
-});
-
-canvas.addEventListener('wheel', e => {
-  e.preventDefault();
-  const idx = selectedObsIdx !== -1 ? selectedObsIdx : hoveredObs;
-  if (idx === -1) return;
-  obstacles[idx].resize(e.deltaY > 0 ? -0.05 : 0.05);
-  if (idx === selectedObsIdx) syncObsInfoScale(obstacles[idx]);
-}, { passive: false });
-
-document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
-
-  if (e.key === 'Escape') {
-    if (foodMode) { setFoodMode(false); return; }
-    if (obstacleMode === 'polygon' && polygonDraw.points.length) {
-      polygonDraw.reset(); updateModePill();
-    } else if (obstacleMode) {
-      setObstacleMode(null);
-    } else if (selectedBoid) {
-      hideInfo();
-    } else if (selectedObsIdx !== -1) {
-      hideObsInfo();
-    }
-  }
-
-  if (e.key === 'Enter' && obstacleMode === 'polygon' && polygonDraw.canClose()) {
-    polygonDraw.close(obstacles); updateModePill();
-  }
-
-  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedObsIdx !== -1) {
-    obstacles.splice(selectedObsIdx, 1);
-    hideObsInfo();
-  }
-});
-
-// ============================================================
-//  MODE PILL
-// ============================================================
-const modePill = document.getElementById('modePill');
-
-function setModePill(text, cls = '') {
-  modePill.textContent = text || '';
-  modePill.classList.toggle('show', !!text);
-  modePill.classList.toggle('polygon-mode', cls === 'polygon');
-  modePill.classList.toggle('food-mode', cls === 'food');
-}
-
-function updateModePill() {
-  if (foodMode) {
-    setModePill('Click canvas to place food target · Esc to cancel', 'food');
-  } else if (obstacleMode === 'polygon') {
-    const n = polygonDraw.points.length;
-    if (n === 0) setModePill('Polygon · Click to place first point', 'polygon');
-    else if (n < 3) setModePill(`Polygon · ${n} point${n > 1 ? 's' : ''} — need ${3 - n} more`, 'polygon');
-    else setModePill(`Polygon · ${n} pts · Click 1st point or ↵ to close · Esc to cancel`, 'polygon');
-  } else if (obstacleMode) {
-    setModePill(`Placing ${obstacleMode} · Esc to cancel`);
-  } else {
-    setModePill(null);
-  }
-}
-
-// ============================================================
-//  OBSTACLE / FOOD MODE
-// ============================================================
-function setObstacleMode(shape) {
-  obstacleMode = shape;
-  polygonDraw.reset();
-  canvas.style.cursor = shape ? 'cell' : 'crosshair';
-  document.querySelectorAll('.obs-grid .chip').forEach(b => {
-    b.classList.toggle('active-obs', b.dataset.shape === shape);
-  });
-  updateModePill();
-}
-
-function setFoodMode(on) {
-  foodMode = on;
-  canvas.style.cursor = on ? 'crosshair' : (obstacleMode ? 'cell' : 'crosshair');
-  document.getElementById('placeFoodBtn').classList.toggle('active-food', on);
-  updateModePill();
-}
-
-// ============================================================
-//  UI BINDINGS
-// ============================================================
-function bindSlider(id, valId, key, parse = parseFloat) {
-  const el = document.getElementById(id);
-  const ve = document.getElementById(valId);
-  el.addEventListener('input', () => {
-    params[key] = parse(el.value);
-    ve.textContent = parse === parseInt
-      ? parseInt(el.value)
-      : parseFloat(el.value).toFixed(el.step.includes('.') ? el.step.split('.')[1].length : 0);
-  });
-}
-
-bindSlider('cohesionWeight',   'cohesionVal',        'cohesionWeight');
-bindSlider('alignmentWeight',  'alignmentVal',       'alignmentWeight');
-bindSlider('separationWeight', 'separationVal',      'separationWeight');
-bindSlider('foodWeight',       'foodVal',            'foodWeight');
-bindSlider('cohesionRadius',   'cohesionRadiusVal',  'cohesionRadius',   parseInt);
-bindSlider('alignmentRadius',  'alignmentRadiusVal', 'alignmentRadius',  parseInt);
-bindSlider('separationRadius', 'separationRadiusVal','separationRadius', parseInt);
-bindSlider('fovAngle',         'fovAngleVal',        'fovAngle',         parseInt);
-bindSlider('maxSpeed',         'maxSpeedVal',        'maxSpeed');
-bindSlider('trailLength',      'trailLengthVal',     'trailAlpha');
-bindSlider('boidSize',         'boidSizeVal',        'boidSize');
-
-document.getElementById('boidCountSlider').addEventListener('input', e => {
-  setBoidCount(parseInt(e.target.value));
-});
-document.getElementById('boidCountInput').addEventListener('change', e => {
-  setBoidCount(parseInt(e.target.value) || INIT_COUNT);
-});
-
-document.getElementById('speedVariation').addEventListener('change', e => {
-  params.speedVariation = e.target.checked;
-});
-document.getElementById('predictiveAvoid').addEventListener('change', e => {
-  params.predictiveAvoid = e.target.checked;
-});
-
-// Border picker
-document.getElementById('borderPicker').addEventListener('click', e => {
-  const btn = e.target.closest('.chip');
-  if (!btn || !btn.dataset.border) return;
-  document.querySelectorAll('#borderPicker .chip').forEach(b => b.classList.remove('active-design'));
-  btn.classList.add('active-design');
-  params.borderMode = btn.dataset.border;
-});
-
-// Design picker
-document.getElementById('designPicker').addEventListener('click', e => {
-  const btn = e.target.closest('.chip');
-  if (!btn || !btn.dataset.design) return;
-  document.querySelectorAll('#designPicker .chip').forEach(b => b.classList.remove('active-design'));
-  btn.classList.add('active-design');
-  params.design = btn.dataset.design;
-});
-document.querySelector('#designPicker .chip').classList.add('active-design');
-
-// Obstacle picker
-document.getElementById('obsPicker').addEventListener('click', e => {
-  const btn = e.target.closest('.chip');
-  if (!btn || !btn.dataset.shape) return;
-  const shape = btn.dataset.shape;
-  setFoodMode(false);
-  setObstacleMode(obstacleMode === shape ? null : shape);
-});
-
-// Food buttons
-document.getElementById('placeFoodBtn').addEventListener('click', () => {
-  setObstacleMode(null);
-  setFoodMode(!foodMode);
-});
-document.getElementById('clearFoodBtn').addEventListener('click', () => {
-  foodTarget = null;
-  setFoodMode(false);
-});
-
-// Obstacle controls
-document.getElementById('obsSize').addEventListener('input', e => {
-  if (selectedObsIdx === -1) return;
-  const s = parseFloat(e.target.value);
-  obstacles[selectedObsIdx].scale = s;
-  document.getElementById('obsSizeVal').textContent      = s.toFixed(2);
-  document.getElementById('obsScaleDisplay').textContent = s.toFixed(2) + '×';
-});
-
-document.getElementById('obsAngle').addEventListener('input', e => {
-  if (selectedObsIdx === -1) return;
-  const deg = parseInt(e.target.value);
-  obstacles[selectedObsIdx].angle = deg * Math.PI / 180;
-  document.getElementById('obsAngleVal').textContent = deg + '°';
-});
-
-document.getElementById('obsDeleteBtn').addEventListener('click', () => {
-  if (selectedObsIdx === -1) return;
-  obstacles.splice(selectedObsIdx, 1);
-  hideObsInfo();
-});
-
-document.getElementById('obsDuplicateBtn').addEventListener('click', () => {
-  if (selectedObsIdx === -1) return;
-  const dup = obstacles[selectedObsIdx].duplicate(35, 35);
-  obstacles.push(dup);
-  showObsInfo(obstacles.length - 1);
-});
-
-document.getElementById('clearObsBtn').addEventListener('click', () => {
-  obstacles = []; selectedObsIdx = -1;
-  hideObsInfo(); setObstacleMode(null);
-});
-
-document.getElementById('addBtn').addEventListener('click', () => {
-  spawnBoid();
-  setBoidCount(boids.length);
-});
-document.getElementById('resetBtn').addEventListener('click', reset);
-document.getElementById('infoClose').addEventListener('click', hideInfo);
-document.getElementById('obsInfoClose').addEventListener('click', hideObsInfo);
-
-// ============================================================
-//  BOOT
-// ============================================================
-new ResizeObserver(resize).observe(canvas);
-resize();
-reset();
-loop();
-</script>
+<script src="boids.js"></script>
 </body>
 </html>
